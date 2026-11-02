@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 120" width="160" height="120">
+  <ellipse cx="80" cy="104" rx="62" ry="8" fill="#e2c3a0"/>
+  <circle cx="40" cy="74" r="15" fill="#d9654b"/>
+  <path d="M40 59c1-6 5-9 9-9" stroke="#4f6b3a" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <ellipse cx="35" cy="69" rx="4" ry="2.5" fill="#ef9a83"/>
+  <circle cx="80" cy="68" r="17" fill="#e8a93a"/>
+  <path d="M80 51c-1-6-4-9-8-10" stroke="#4f6b3a" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M82 50c5-5 11-5 14-2-4 4-9 5-14 2z" fill="#6e8f4e"/>
+  <ellipse cx="74" cy="62" rx="4.5" ry="2.8" fill="#f5cd7f"/>
+  <circle cx="120" cy="76" r="14" fill="#d9654b"/>
+  <path d="M120 62c0-5 3-8 7-9" stroke="#4f6b3a" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <ellipse cx="115" cy="71" rx="4" ry="2.4" fill="#ef9a83"/>
+  <circle cx="60" cy="96" r="10" fill="#c98a6a"/>
+  <circle cx="100" cy="97" r="9" fill="#e8a93a"/>
+  <g font-family="Georgia, serif" font-size="14" fill="#7a4a2a" text-anchor="middle">
+    <text x="40" y="38">1</text><text x="80" y="30">2</text><text x="120" y="42">3</text>
+  </g>
+</svg>

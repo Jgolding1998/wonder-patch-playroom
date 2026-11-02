@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'none'; font-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; worker-src 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="color-scheme" content="light">
+  <title>Wonder Patch</title>
+  <link rel="icon" href="assets/mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="src/learning.js"></script>
+  <script defer src="src/progress.js"></script>
+  <script defer src="src/app.js"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to the games</a>
+
+  <header class="topbar">
+    <a class="brand" href="#/" aria-label="Wonder Patch, home">
+      <img class="brand-mark" src="assets/mark.svg" alt="" width="32" height="32">
+      <span class="brand-name">Wonder Patch</span>
+    </a>
+    <a class="grownups-link" href="#/grown-ups">For grown-ups</a>
+  </header>
+
+  <main id="main" class="main">
+    <noscript>
+      <p class="noscript">Wonder Patch needs JavaScript turned on to play. Nothing is sent anywhere. Everything runs on this device.</p>
+    </noscript>
+    <!-- Views are built by src/app.js -->
+  </main>
+
+  <div class="sr-only" id="announcer" role="status" aria-live="polite" aria-atomic="true"></div>
+</body>
+</html>

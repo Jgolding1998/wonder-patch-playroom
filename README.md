@@ -35,6 +35,8 @@ Art lives in the open activity. Leaving it or reloading discards the picture. **
 
 Finished-round counts last for the current visit by default. In **For grown-ups**, **Save progress on this device** optionally keeps only six completion counters in this browser. There are no profiles, names, ages or contact details. Turning saving off removes saved counts. **Reset counts** clears them and turns saving off. Storage being blocked or full does not prevent play.
 
+An older open tab checks the saving choice again before its next completion, so it does not turn saving back on after you switched it off. If a save fails, the app keeps the current counts for this visit and attempts to remove stale saved counts. Browser permissions can also prevent removal; use the browser's site-data controls if you need to clear data it will not let the app remove.
+
 The app has no analytics, ads, accounts, microphone/camera access, remote fonts or runtime API calls. If it is hosted on a website, the browser must still request its static files and that host may keep its own access logs. Downloading and opening the folder avoids a hosting service entirely.
 
 ## Develop and check
@@ -52,7 +54,7 @@ npm run test:browser
 
 `npm run build` copies the thirteen local runtime files into `dist/`, suitable for a static host or another local folder. Paths are relative, including under a subdirectory. It does not publish anything.
 
-The Node tests exercise generated questions, retries, completion counting, memory interactions, drawing coordinates, opt-in storage and the static server's file allowlist. Browser tests exercise all six activities, keyboard and touch input, art downloads, storage failures, subdirectory hosting and downloaded-file offline play. Results are written outside the source directory. Set `PW_OUTPUT_DIR` to choose a test-results folder, or `PW_EXECUTABLE_PATH` to use an already installed Chromium-based browser.
+The Node tests exercise generated questions, retries, completion counting, memory interactions, drawing coordinates, opt-in storage and the static server's file allowlist. Browser tests exercise all six activities, keyboard and touch input, held keys, drawing focus, list semantics, art downloads, storage failures and saving choices across tabs, subdirectory hosting and downloaded-file offline play. Results are written outside the source directory. Set `PW_OUTPUT_DIR` to choose a test-results folder, or `PW_EXECUTABLE_PATH` to use an already installed Chromium-based browser.
 
 ## Scope and limitations
 

@@ -64,3 +64,29 @@ test('corrupt, older and unavailable storage never prevents play', () => {
   assert.equal(full.setEnabled(true).available, false)
   assert.equal(full.recordCompletion('color').counts.color, 1)
 })
+
+test('a failed save removes stale saved counts and reset can still remove data', () => {
+  const storage = memoryStorage()
+  const store = createProgressStore(storage)
+  store.setEnabled(true)
+  store.recordCompletion('count')
+  storage.setItem = () => { throw new Error('Quota exceeded') }
+  assert.equal(store.recordCompletion('count').enabled, false)
+  assert.equal(storage.values.has(KEY), false)
+  storage.values.set(KEY, JSON.stringify({ version: 1, enabled: true, counts: { count: 8 } }))
+  store.reset()
+  assert.equal(storage.values.has(KEY), false)
+  assert.equal(createProgressStore(storage).getState().counts.count, 0)
+})
+
+test('another open tab cannot silently re-enable saving after it was turned off', () => {
+  const storage = memoryStorage()
+  const first = createProgressStore(storage)
+  first.setEnabled(true)
+  const second = createProgressStore(storage)
+  assert.equal(second.getState().enabled, true)
+  first.setEnabled(false)
+  assert.equal(second.recordCompletion('letters').enabled, false)
+  assert.equal(storage.values.has(KEY), false)
+  assert.equal(second.getState().counts.letters, 1)
+})

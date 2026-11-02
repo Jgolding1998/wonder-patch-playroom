@@ -328,6 +328,7 @@ body[data-view="grown-ups"] .grownups-link { color: var(--text); text-decoration
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
 }
 .card-face .sym { width: 56%; height: auto; }
+.card:not(.is-up) .card-face { visibility: hidden; transition: visibility 0s linear var(--mid); }
 .card-name { font-size: 15px; font-weight: 500; color: var(--text-2); }
 .card.is-matched .card-face { background: var(--accent-soft); border-color: var(--accent); }
 .card.is-matched .card-name { color: var(--accent-ink); }

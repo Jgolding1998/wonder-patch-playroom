@@ -56,6 +56,12 @@
     announceTimer = setTimeout(function () { announcer.textContent = msg; }, 60);
   }
 
+  // Focus can move to Next or Play again after one press. A held key must not
+  // activate that new control too, or repeatedly toggle the drawing pen.
+  document.addEventListener('keydown', function (e) {
+    if (e.repeat && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); }
+  }, true);
+
   /* ---------- palette shared by drawings ---------- */
 
   var INK = {
@@ -246,6 +252,8 @@
     }
     var previous = currentRaw;
     currentRaw = raw;
+    clearTimeout(announceTimer);
+    announcer.textContent = '';
     if (typeof cleanup === 'function') { try { cleanup(); } catch (e) { /* ignore */ } }
     cleanup = null;
     clear(main);
@@ -400,7 +408,7 @@
           var it = items[i];
           if (it !== undefined) {
             var nm = itemName(it);
-            slots.push(h('li', { class: 'frame-cell is-filled', role: 'img', 'aria-label': nameOf(nm) }, [symbol(nm, 'sym')]));
+            slots.push(h('li', { class: 'frame-cell is-filled', 'aria-label': nameOf(nm) }, [symbol(nm, 'sym')]));
           } else {
             slots.push(h('li', { class: 'frame-cell', 'aria-hidden': 'true' }));
           }
@@ -422,8 +430,8 @@
       if (qIndex === -1) { seq.push('?'); qIndex = seq.length - 1; }
       var spoken = seq.map(function (sh) { return sh === '?' ? 'what comes next' : nameOf(sh).toLowerCase(); }).join(', ');
       var row = seq.map(function (sh, i) {
-        if (sh === '?') return h('li', { class: 'pat-cell is-gap', 'data-gap': String(i) }, [h('span', { 'aria-hidden': 'true', text: '?' })]);
-        return h('li', { class: 'pat-cell' }, [symbol(sh, 'sym', 'pattern')]);
+        if (sh === '?') return h('li', { class: 'pat-cell is-gap', role: 'presentation', 'data-gap': String(i) }, [h('span', { 'aria-hidden': 'true', text: '?' })]);
+        return h('li', { class: 'pat-cell', role: 'presentation' }, [symbol(sh, 'sym', 'pattern')]);
       });
       return h('div', { class: 'visual' }, [
         h('ol', { class: 'pattern-row', role: 'img', 'aria-label': 'Pattern: ' + spoken }, row)
@@ -820,6 +828,9 @@
     canvas.addEventListener('pointerdown', function (e) {
       if (activePointer !== null || (e.pointerType === 'mouse' && e.button !== 0)) return;
       e.preventDefault();
+      // preventDefault cancels the normal focus move. Space must reach the paper,
+      // rather than re-pressing the last toolbar button (for example, Undo).
+      if (document.activeElement !== canvas) canvas.focus({ preventScroll: true });
       activePointer = e.pointerId;
       try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
       var p = point(e);
@@ -871,6 +882,7 @@
     undoBtn.addEventListener('click', function () {
       var last = history.pop();
       if (!last) return;
+      dismissConfirm();
       if (last.type === 'stroke') {
         var st = strokes.pop();
         if (st && st.el.parentNode) st.el.parentNode.removeChild(st.el);
@@ -1054,6 +1066,7 @@
     undoBtn.addEventListener('click', function () {
       var last = history.pop();
       if (!last) return;
+      clear(confirmSlot);
       if (last.type === 'fill') { setFill(last.id, last.prev); announce('Took back the last color.'); }
       else { Object.keys(last.prev).forEach(function (id) { setFill(id, last.prev[id]); }); announce('Colors are back.'); }
       sync();

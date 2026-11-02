@@ -279,3 +279,160 @@ test('every screen fits narrow 320px and 390px layouts without horizontal scroll
   }
   verify()
 })
+
+test('another tab respects turning saved progress off before its next completion', async ({ page, context }) => {
+  await go(page, 'grown-ups')
+  await page.getByRole('switch').focus()
+  await page.keyboard.press('Space')
+  await expect(page.getByRole('switch')).toBeChecked()
+  const second = await context.newPage()
+  await second.goto('/#/count')
+  await expect(second.locator('body')).toHaveAttribute('data-view', 'count')
+  await page.getByRole('switch').focus()
+  await page.keyboard.press('Space')
+  await expect(page.getByRole('switch')).not.toBeChecked()
+  await finishRound(second, 'count')
+  expect(await second.evaluate(() => localStorage.getItem(LocalProgress.KEY))).toBeNull()
+  await go(second, 'grown-ups')
+  await expect(second.getByRole('switch')).not.toBeChecked()
+  await second.close()
+})
+
+test('a storage quota failure does not leave old saved counts behind', async ({ page }) => {
+  await page.addInitScript(() => {
+    const original = Storage.prototype.setItem
+    original.call(localStorage, 'wonder-patch.progress.v1', JSON.stringify({ version: 1, enabled: true, counts: { count: 5 } }))
+    Storage.prototype.setItem = function (key, value) {
+      if (key === 'wonder-patch.progress.v1') throw new DOMException('Storage is full', 'QuotaExceededError')
+      return original.call(this, key, value)
+    }
+  })
+  await go(page, 'count')
+  await finishRound(page, 'count')
+  expect(await page.evaluate(() => localStorage.getItem(LocalProgress.KEY))).toBeNull()
+  await go(page, 'grown-ups')
+  await expect(page.getByRole('switch')).toBeDisabled()
+  await expect(page.getByRole('row', { name: 'Counting 6', exact: true })).toBeVisible()
+})
+
+test('holding the drawing pen toggle key does not repeatedly lift the pen', async ({ page }) => {
+  await go(page, 'draw')
+  const paper = page.locator('.draw-canvas')
+  await paper.focus()
+  await page.keyboard.down('Space')
+  await page.keyboard.down('Space')
+  await expect(page.locator('.pen-state')).toHaveText('Pen down')
+  await page.keyboard.press('ArrowRight')
+  await page.keyboard.up('Space')
+  await expect(page.locator('.ink path')).toHaveCount(1)
+  expect(await page.locator('.ink path').getAttribute('d')).toContain('416')
+  await page.keyboard.press('Space')
+  await expect(page.locator('.pen-state')).toHaveText('Pen up')
+})
+
+test('counting pictures keep the list-item roles needed to count them', async ({ page }) => {
+  await go(page, 'count')
+  const pictures = await page.locator('.frame-cell.is-filled').count()
+  const list = page.getByRole('list', { name: /A frame with ten spaces/ })
+  await expect(list.getByRole('listitem')).toHaveCount(pictures)
+})
+
+test('the named pattern image has no orphan list-item roles', async ({ page }) => {
+  await go(page, 'patterns')
+  const picture = page.getByRole('img', { name: /^Pattern:/ })
+  await expect(picture).toBeVisible()
+  await expect(picture.getByRole('listitem')).toHaveCount(0)
+})
+
+test('holding Enter on a quiz answer keeps the feedback until a fresh press', async ({ page }) => {
+  await go(page, 'letters')
+  await (await answer(page, 'letters')).focus()
+  await page.keyboard.down('Enter')
+  await page.keyboard.down('Enter')
+  await page.keyboard.up('Enter')
+  await expect(page.locator('.stitches-label')).toHaveText('Question 1 of 5')
+  await expect(page.locator('.feedback')).toContainText('right')
+  await expect(page.locator('.next')).toBeFocused()
+  await page.keyboard.press('Enter')
+  await expect(page.locator('.stitches-label')).toHaveText('Question 2 of 5')
+})
+
+test('holding Enter on the last memory card keeps the finished board', async ({ page }) => {
+  await go(page, 'memory')
+  const names = await page.locator('.card-name').allTextContents()
+  const pairs = [...new Set(names)].map(name => names.flatMap((value, index) => value === name ? [index] : []))
+  for (let index = 0; index < pairs.length; index += 1) {
+    await page.locator('.card').nth(pairs[index][0]).click()
+    const last = page.locator('.card').nth(pairs[index][1])
+    if (index < pairs.length - 1) await last.click()
+    else {
+      await last.focus()
+      await page.keyboard.down('Enter')
+      await page.keyboard.down('Enter')
+      await page.keyboard.down('Enter')
+      await page.keyboard.up('Enter')
+    }
+  }
+  await expect(page.getByRole('heading', { name: 'Patch finished' })).toBeVisible()
+  await expect(page.locator('.card.is-matched')).toHaveCount(12)
+})
+
+test('clicking drawing paper moves keyboard focus away from Undo', async ({ page }) => {
+  await go(page, 'draw')
+  const paper = page.locator('.draw-canvas')
+  await paper.click({ position: { x: 40, y: 40 } })
+  await paper.click({ position: { x: 80, y: 80 } })
+  await page.getByRole('button', { name: 'Undo', exact: true }).click()
+  await paper.click({ position: { x: 120, y: 120 } })
+  await expect(paper).toBeFocused()
+  await page.keyboard.press('Space')
+  await page.keyboard.press('ArrowRight')
+  await page.keyboard.press('Space')
+  await expect(page.locator('.ink path')).toHaveCount(3)
+  await expect(page.locator('.pen-state')).toHaveText('Pen up')
+})
+
+test('a pending color announcement does not follow navigation home', async ({ page }) => {
+  await go(page, 'color')
+  // Same-task clicks keep this regression independent of machine/automation speed.
+  await page.getByRole('button', { name: 'Plum', exact: true }).evaluate(button => {
+    button.click()
+    document.querySelector('.back').click()
+  })
+  await expect(page.locator('body')).toHaveAttribute('data-view', 'home')
+  await page.waitForTimeout(100)
+  await expect(page.locator('#announcer')).toBeEmpty()
+})
+
+for (const activity of ['draw', 'color']) {
+  test(`undo dismisses a stale ${activity} clear confirmation`, async ({ page }) => {
+    await go(page, activity)
+    if (activity === 'draw') await page.locator('.draw-canvas').click({ position: { x: 40, y: 40 } })
+    else await page.getByRole('button', { name: 'Fill sky', exact: true }).click()
+    const clear = activity === 'draw' ? 'Clear' : 'Start over'
+    const confirm = activity === 'draw' ? 'Yes, clear it' : 'Yes, start over'
+    await page.getByRole('button', { name: clear, exact: true }).click()
+    await expect(page.getByRole('button', { name: confirm, exact: true })).toBeVisible()
+    await page.getByRole('button', { name: 'Undo', exact: true }).click()
+    await expect(page.getByRole('button', { name: confirm, exact: true })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: clear, exact: true })).toBeDisabled()
+    await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeDisabled()
+  })
+}
+
+test('memory answers stay out of page text until a card is flipped', async ({ page }) => {
+  for (const reducedMotion of ['no-preference', 'reduce']) {
+    await page.emulateMedia({ reducedMotion })
+    await go(page, 'memory')
+    const names = await page.locator('.card-name').allTextContents()
+    for (const name of new Set(names)) expect(await page.locator('.mem-grid').innerText()).not.toContain(name)
+    const different = names.findIndex(name => name !== names[0])
+    await page.locator('.card').first().click()
+    await expect(page.locator('.card-name').first()).toBeVisible()
+    expect(await page.locator('.mem-grid').innerText()).toContain(names[0])
+    await page.locator('.card').nth(different).click()
+    await expect(page.locator('.card.is-up')).toHaveCount(0)
+    await expect(page.locator('.card-name').first()).toBeHidden()
+    for (const name of new Set(names)) expect(await page.locator('.mem-grid').innerText()).not.toContain(name)
+  }
+})

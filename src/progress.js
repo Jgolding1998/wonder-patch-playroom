@@ -33,20 +33,38 @@
       return { enabled, available, counts: { ...counts } }
     }
 
-    function persist() {
+    function removeSaved() {
+      // A full store may reject writes while still allowing data to be removed.
+      if (storage && typeof storage.removeItem === 'function') {
+        try { storage.removeItem(KEY) } catch { available = false }
+      }
+    }
+
+    function persist(explicit = false) {
       if (enabled && available) {
-        try { storage.setItem(KEY, JSON.stringify({ version: 1, enabled: true, counts })) }
-        catch { available = false; enabled = false }
+        try {
+          // An older open tab must respect saving being turned off elsewhere.
+          if (!explicit) {
+            const saved = JSON.parse(storage.getItem(KEY))
+            if (!saved || saved.version !== 1 || saved.enabled !== true) {
+              enabled = false
+              return getState()
+            }
+          }
+          storage.setItem(KEY, JSON.stringify({ version: 1, enabled: true, counts }))
+        } catch {
+          available = false
+          enabled = false
+          removeSaved()
+        }
       }
       return getState()
     }
 
     function setEnabled(value) {
       enabled = value === true && available
-      if (enabled) return persist()
-      if (available) {
-        try { storage.removeItem(KEY) } catch { available = false }
-      }
+      if (enabled) return persist(true)
+      removeSaved()
       return getState()
     }
 
